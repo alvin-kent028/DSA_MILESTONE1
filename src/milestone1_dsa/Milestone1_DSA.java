@@ -54,11 +54,13 @@ class Stock {
 class InventoryManager {
     private LinkedList<Stock> inventory;
     private Stack<Stock> undoStack;
+    private Queue<Stock> searchResultsQueue;
     private Scanner scanner;
 
     public InventoryManager() {
         inventory = new LinkedList<>();
         undoStack = new Stack<>();
+        searchResultsQueue = new LinkedList<>();
         scanner = new Scanner(System.in);
     }
 
@@ -93,7 +95,7 @@ class InventoryManager {
         System.out.println("No stock found with the given engine number.");
     }
 
-    // Sort stocks by brand
+    // Sort stocks by brand using Merge Sort
     public void sortStocksByBrand() {
         System.out.print("Enter the brand to sort by (or 'All' to sort all): ");
         String brand = scanner.nextLine().trim();
@@ -103,10 +105,41 @@ class InventoryManager {
                 filteredList.add(stock);
             }
         }
-        filteredList.sort(Comparator.comparing(Stock::getBrand));
+        mergeSort(filteredList, 0, filteredList.size() - 1);
         System.out.println("\nSorted Stocks by Brand:");
         for (Stock stock : filteredList) {
             System.out.println(stock);
+        }
+    }
+
+    // Merge Sort implementation
+    private void mergeSort(List<Stock> list, int left, int right) {
+        if (left < right) {
+            int mid = (left + right) / 2;
+            mergeSort(list, left, mid);
+            mergeSort(list, mid + 1, right);
+            merge(list, left, mid, right);
+        }
+    }
+
+    private void merge(List<Stock> list, int left, int mid, int right) {
+        List<Stock> temp = new ArrayList<>();
+        int i = left, j = mid + 1;
+        while (i <= mid && j <= right) {
+            if (list.get(i).getBrand().compareTo(list.get(j).getBrand()) <= 0) {
+                temp.add(list.get(i++));
+            } else {
+                temp.add(list.get(j++));
+            }
+        }
+        while (i <= mid) {
+            temp.add(list.get(i++));
+        }
+        while (j <= right) {
+            temp.add(list.get(j++));
+        }
+        for (i = left; i <= right; i++) {
+            list.set(i, temp.get(i - left));
         }
     }
 
@@ -116,6 +149,7 @@ class InventoryManager {
         String engineNumber = scanner.nextLine().trim();
         for (Stock stock : inventory) {
             if (stock.getEngineNumber().equals(engineNumber)) {
+                searchResultsQueue.add(stock);
                 System.out.println("Found: " + stock);
                 return;
             }
@@ -128,6 +162,17 @@ class InventoryManager {
         System.out.println(String.format("%-12s %-10s %-10s %-15s %-10s", "Date", "Label", "Brand", "Engine No.", "Status"));
         for (Stock stock : inventory) {
             System.out.println(stock);
+        }
+    }
+
+    // Undo last addition
+    public void undoLastAddition() {
+        if (!undoStack.isEmpty()) {
+            Stock lastAdded = undoStack.pop();
+            inventory.remove(lastAdded);
+            System.out.println("Undo successful. Last added stock removed: " + lastAdded);
+        } else {
+            System.out.println("No operations to undo.");
         }
     }
 
@@ -144,13 +189,14 @@ class InventoryManager {
             System.out.println("3. Sort Stocks by Brand");
             System.out.println("4. Search Stock by Engine Number");
             System.out.println("5. Display All Stocks");
-            System.out.println("6. Exit");
+            System.out.println("6. Undo Last Addition");
+            System.out.println("7. Exit");
             System.out.print("Enter your choice: ");
             int choice = scanner.nextInt();
             scanner.nextLine(); // Consume the newline character
 
             switch (choice) {
-                case 1:
+                case 1 -> {
                     System.out.print("Enter date (MM/DD/YYYY): ");
                     String date = scanner.nextLine();
                     System.out.print("Enter stock label: ");
@@ -162,24 +208,17 @@ class InventoryManager {
                     System.out.print("Enter status (On-hand/Sold): ");
                     String status = scanner.nextLine();
                     addNewStock(date, label, brand, engineNumber, status);
-                    break;
-                case 2:
-                    deleteStock();
-                    break;
-                case 3:
-                    sortStocksByBrand();
-                    break;
-                case 4:
-                    searchStockByEngineNumber();
-                    break;
-                case 5:
-                    displayAllStocks();
-                    break;
-                case 6:
+                }
+                case 2 -> deleteStock();
+                case 3 -> sortStocksByBrand();
+                case 4 -> searchStockByEngineNumber();
+                case 5 -> displayAllStocks();
+                case 6 -> undoLastAddition();
+                case 7 -> {
                     System.out.println("Exiting...");
                     return;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
+                }
+                default -> System.out.println("Invalid choice. Please try again.");
             }
         }
     }
@@ -239,6 +278,7 @@ public class Milestone1_DSA {
             {"3/7/2023", "New", "Suzuki", "LAMH9Y1YD6", "On-hand"},
             {"3/7/2023", "New", "Yamaha", "02G7NJCRGS", "On-hand"},
             {"3/7/2023", "New", "Kawasaki", "392XSUBMUW", "On-hand"}
+            // Add all other data here...
         };
 
         // Add all data to the inventory
